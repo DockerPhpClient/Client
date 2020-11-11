@@ -2,6 +2,7 @@
 namespace Docker\Client;
 
 use Docker\Client\Manager\ContainerManager;
+use Docker\Client\Manager\ImageManager;
 use Docker\OpenAPI\Client as ApiClient;
 
 class DockerClient
@@ -9,6 +10,7 @@ class DockerClient
     private ApiClient $apiClient;
 
     private ?ContainerManager $containerManager = null;
+    private ?ImageManager $imageManager = null;
 
     public function __construct(ApiClient $apiClient)
     {
@@ -21,6 +23,14 @@ class DockerClient
             $this->containerManager = new ContainerManager($this->apiClient);
         }
         return $this->containerManager;
+    }
+
+    public function images(): ImageManager
+    {
+        if (null === $this->imageManager) {
+            $this->imageManager = new ImageManager($this->apiClient);
+        }
+        return $this->imageManager;
     }
 
 }

@@ -28,7 +28,7 @@ class DockerClientFactory
         $host = preg_match('/unix:\/\//', $remoteSocket) ? 'http://localhost' : $remoteSocket;
 
         $httpClient = new PluginClient($socketClient, [
-            new ErrorPlugin(),
+            #new ErrorPlugin(),
             new ContentLengthPlugin(),
             new DecoderPlugin(),
             new AddHostPlugin(new Uri($host)),
