@@ -19,6 +19,11 @@ try {
     // create a named container
     $client->containers()->create($container, ['name' => $containerName]);
 
+
+    // list all images
+    $containers = $client->containers()->list();
+    echo implode("", $client->containers()->toContainerListLog($containers));
+
     // start container
     $client->containers()->start($containerName);
 

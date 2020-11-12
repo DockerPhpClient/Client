@@ -6,6 +6,7 @@ namespace Docker\Client\Manager;
 
 use Docker\OpenAPI\Client;
 use Docker\OpenAPI\Model\ContainersCreatePostBody;
+use Docker\OpenAPI\Model\ContainerSummaryItem;
 use Psr\Http\Message\ResponseInterface;
 
 class ContainerManager
@@ -43,5 +44,26 @@ class ContainerManager
     {
         $response = $this->apiClient->containerAttach($idOrName, ['logs' => true, 'stdout' => true, 'stderr' => true], Client::FETCH_RESPONSE);
         return ($response instanceof ResponseInterface) ? $response->getBody()->getContents() : "";
+    }
+
+    /**
+     * @param array $queryParameters
+     * @return ContainerSummaryItem[]
+     */
+    public function list(array $queryParameters = []): array
+    {
+        return $this->apiClient->containerList($queryParameters, $this->fetchType);
+    }
+
+    /**
+     * TODO: WIP
+     * @param ContainerSummaryItem[] $containers
+     * @return string[]
+     */
+    public function toContainerListLog(array $containers): array
+    {
+        return array_map(static function (ContainerSummaryItem $container) {
+            return substr($container->getId(), 8) . " " . $container->getNames()[0] . " " . $container->getImage() . " (" . substr($container->getImageID(), 8) . ")\n";
+        }, $containers);
     }
 }

@@ -18,7 +18,8 @@
     "php-http/socket-client": "^2.0",
     "php-http/client-common": "^2.3",
     "guzzlehttp/psr7": "^1.7",
-    "docker-client/open-api": "6.1.40.*"
+    "docker-client/open-api": "6.1.40.*",
+    "splitbrain/php-archive": "*"
   },
   "prefer-stable": true,
   "minimum-stability": "dev"

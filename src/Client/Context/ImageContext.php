@@ -3,43 +3,48 @@
 namespace Docker\Client\Context;
 
 use Docker\Client\Stream\TarStream;
+use FilesystemIterator;
+use GuzzleHttp\Psr7\Utils;
 use Psr\Http\Message\StreamInterface;
+use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
+use splitbrain\PHPArchive\Archive;
+use splitbrain\PHPArchive\ArchiveCorruptedException;
+use splitbrain\PHPArchive\ArchiveIllegalCompressionException;
+use splitbrain\PHPArchive\ArchiveIOException;
+use splitbrain\PHPArchive\FileInfoException;
+use splitbrain\PHPArchive\Tar;
 
 class ImageContext
 {
-    private string $directory;
-    /**
-     * @var resource $process
-     */
-    private $process;
+    protected const FLAGS =
+        FilesystemIterator::KEY_AS_PATHNAME |
+        FilesystemIterator::CURRENT_AS_FILEINFO |
+        FilesystemIterator::SKIP_DOTS;
 
-    /**
-     * @var resource $stream
-     */
-    private $stream;
+    private string $contextDirectory;
+    private Archive $archive;
 
-    public function __construct(string $directory)
+    public function __construct($contextDirectory, Archive $archive)
     {
-        $this->directory = $directory;
+        $this->contextDirectory = $contextDirectory;
+        $this->archive = $archive;
     }
 
-    public function getStream(): StreamInterface
+    /**
+     * @return StreamInterface
+     * @throws ArchiveIOException
+     */
+    public function toStream(): StreamInterface
     {
-        $this->process = proc_open("/usr/bin/env tar c .", [["pipe", "r"], ["pipe", "w"], ["pipe", "w"]], $pipes, $this->directory);
-        $this->stream = $pipes[1];
+        $this->archive->create();
 
-        return new TarStream($this->stream);
-    }
-
-    public function __destruct()
-    {
-        if (is_resource($this->process)) {
-            proc_close($this->process);
+        foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator($this->contextDirectory, static::FLAGS)) as $file) {
+            if ($file->isFile()) {
+                $this->archive->addFile($file->getPathname(), str_replace($this->contextDirectory, '', $file->getPathname()));
+            }
         }
 
-        if (is_resource($this->stream)) {
-            fclose($this->stream);
-        }
+        return Utils::streamFor($this->archive->getArchive());
     }
-
 }
