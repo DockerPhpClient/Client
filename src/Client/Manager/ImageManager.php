@@ -5,46 +5,37 @@ namespace Docker\Client\Manager;
 
 
 use Docker\Client\Context\ImageContext;
+use Docker\Client\DockerClient;
 use Docker\Client\Endpoint\ImageBuild;
 use Docker\OpenAPI\Client;
 use Docker\OpenAPI\Model\BuildInfo;
 use Docker\OpenAPI\Model\ImageDeleteResponseItem;
 use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\StreamInterface;
-use splitbrain\PHPArchive\ArchiveCorruptedException;
-use splitbrain\PHPArchive\ArchiveIllegalCompressionException;
 use splitbrain\PHPArchive\ArchiveIOException;
-use splitbrain\PHPArchive\FileInfoException;
-use splitbrain\PHPArchive\Tar;
 
-class ImageManager
+class ImageManager extends AbstractManager
 {
-    private Client $apiClient;
-    private string $fetchType;
-
-    /**
-     * @param Client $apiClient
-     * @param string $fetchType
-     */
-    public function __construct(Client $apiClient, string $fetchType = Client::FETCH_OBJECT)
-    {
-        $this->apiClient = $apiClient;
-        $this->fetchType = $fetchType;
-    }
-
     /**
      * @param ImageContext $imageContext
      * @param array $queryParameters
      * @param array $headerParameters
-     * @return BuildInfo[]
-     * @throws ArchiveCorruptedException
+     * @param string $fetch
+     * @return ResponseInterface|void|null
      * @throws ArchiveIOException
-     * @throws ArchiveIllegalCompressionException
-     * @throws FileInfoException
      */
-    public function build(ImageContext $imageContext, array $queryParameters = [], array $headerParameters = []): array
-    {
-        return $this->apiClient->executeEndpoint(new ImageBuild($imageContext->toStream(), $queryParameters, $headerParameters), Client::FETCH_OBJECT);
+    public function build(
+        ImageContext $imageContext,
+        array $queryParameters = [],
+        array $headerParameters = [],
+        string $fetch = DockerClient::FETCH_STREAM
+    ) {
+        if (DockerClient::FETCH_STREAM === $fetch) {
+            $this->streamClient->imageBuild($imageContext->toStream(), $queryParameters, $headerParameters, Client::FETCH_RESPONSE);
+            return;
+        }
+        if (Client::FETCH_OBJECT === $fetch || Client::FETCH_RESPONSE === $fetch) {
+            return $this->socketClient->executeEndpoint(new ImageBuild($imageContext->toStream(), $queryParameters, $headerParameters), $fetch);
+        }
     }
 
     /**
@@ -54,18 +45,7 @@ class ImageManager
      */
     public function delete(string $idOrName, array $queryParameters = [])
     {
-        return $this->apiClient->imageDelete($idOrName, $queryParameters, $this->fetchType);
-    }
-
-    /**
-     * @param BuildInfo[] $buildInfos
-     * @return string[]
-     */
-    public function toBuildLog(array $buildInfos): array
-    {
-        return array_map(static function (BuildInfo $buildInfo) {
-            return $buildInfo->getStream();
-        }, $buildInfos);
+        return $this->socketClient->imageDelete($idOrName, $queryParameters, Client::FETCH_RESPONSE);
     }
 
     /**

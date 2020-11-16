@@ -3,6 +3,7 @@
 use Docker\Client\Context\ContextFactory;
 use Docker\Client\Context\ImageContext;
 use Docker\Client\Context\ImageContextFactory;
+use Docker\Client\DockerClient;
 use Docker\Client\DockerClientFactory;
 use splitbrain\PHPArchive\Tar;
 
@@ -13,11 +14,8 @@ $client = DockerClientFactory::create();
 // build image
 $factory = new ContextFactory(Tar::class);
 $context = $factory->createImageContext(__DIR__ . '/app/');
-$buildInfos = $client->images()->build($context, ['t' => 'new-test-image']);
-
-// print build log and receive id
-echo implode("", $client->images()->toBuildLog($buildInfos));
-echo "\nImage ID: " . $client->images()->toBuildId($buildInfos) . "\n";
+$response = $client->images()->build($context, ['t' => 'new-test-image'], [], DockerClient::FETCH_STREAM);
+var_dump($response);
 
 // delete image
 $client->images()->delete('new-test-image');

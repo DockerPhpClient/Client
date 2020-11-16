@@ -6,64 +6,38 @@ namespace Docker\Client\Manager;
 
 use Docker\OpenAPI\Client;
 use Docker\OpenAPI\Model\ContainersCreatePostBody;
-use Docker\OpenAPI\Model\ContainerSummaryItem;
 use Psr\Http\Message\ResponseInterface;
 
-class ContainerManager
+class ContainerManager extends AbstractManager
 {
-    private Client $apiClient;
-    private string $fetchType;
-
-    public function __construct(Client $apiClient, string $fetchType = Client::FETCH_OBJECT)
-    {
-        $this->apiClient = $apiClient;
-        $this->fetchType = $fetchType;
-    }
-
     public function create(ContainersCreatePostBody $container, array $queryParameters = [])
     {
-        return $this->apiClient->containerCreate($container, $queryParameters, $this->fetchType);
+        return $this->socketClient->containerCreate($container, $queryParameters, Client::FETCH_OBJECT);
     }
 
     public function start(string $idOrName, array $queryParameters = []): ?ResponseInterface
     {
-        return $this->apiClient->containerStart($idOrName, $queryParameters, $this->fetchType);
+        return $this->socketClient->containerStart($idOrName, $queryParameters, Client::FETCH_OBJECT);
     }
 
     public function delete(string $idOrName, array $queryParameters = []): ?ResponseInterface
     {
-        return $this->apiClient->containerDelete($idOrName, $queryParameters, $this->fetchType);
+        return $this->socketClient->containerDelete($idOrName, $queryParameters, Client::FETCH_OBJECT);
     }
 
     public function wait(string $idOrName, array $queryParameters = [])
     {
-        return $this->apiClient->containerWait($idOrName, $queryParameters, $this->fetchType);
+        return $this->socketClient->containerWait($idOrName, $queryParameters, Client::FETCH_OBJECT);
     }
 
-    public function logs(string $idOrName): string
+    public function logs(string $idOrName, bool $stream = false): string
     {
-        $response = $this->apiClient->containerAttach($idOrName, ['logs' => true, 'stdout' => true, 'stderr' => true], Client::FETCH_RESPONSE);
+        $response = $this->streamClient->containerAttach($idOrName, ['logs' => true, 'stream' => $stream, 'stdout' => true, 'stderr' => true], Client::FETCH_RESPONSE);
         return ($response instanceof ResponseInterface) ? $response->getBody()->getContents() : "";
     }
 
-    /**
-     * @param array $queryParameters
-     * @return ContainerSummaryItem[]
-     */
     public function list(array $queryParameters = []): array
     {
-        return $this->apiClient->containerList($queryParameters, $this->fetchType);
-    }
-
-    /**
-     * TODO: WIP
-     * @param ContainerSummaryItem[] $containers
-     * @return string[]
-     */
-    public function toContainerListLog(array $containers): array
-    {
-        return array_map(static function (ContainerSummaryItem $container) {
-            return substr($container->getId(), 8) . " " . $container->getNames()[0] . " " . $container->getImage() . " (" . substr($container->getImageID(), 8) . ")\n";
-        }, $containers);
+        return $this->socketClient->containerList($queryParameters, Client::FETCH_OBJECT);
     }
 }
