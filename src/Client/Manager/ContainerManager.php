@@ -95,15 +95,16 @@ class ContainerManager extends AbstractManager
      * @param string $idOrName
      * @param LoggerInterface $logger
      * @param string $logLevel
+     * @param string $errorLogLevel
      */
-    public function log(string $idOrName, LoggerInterface $logger, string $logLevel = LogLevel::INFO): void
+    public function log(string $idOrName, LoggerInterface $logger, string $logLevel = LogLevel::INFO, $errorLogLevel = LogLevel::ERROR): void
     {
         $stream = $this->logs($idOrName);
         $stream->onStdout(static function ($data) use ($logger, $logLevel) {
             $logger->log($logLevel, $data);
         });
-        $stream->onStderr(static function ($data) use ($logger) {
-            $logger->error($data);
+        $stream->onStderr(static function ($data) use ($logger, $errorLogLevel) {
+            $logger->log($errorLogLevel, $data);
         });
         $stream->wait();
     }
