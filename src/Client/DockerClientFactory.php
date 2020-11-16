@@ -14,15 +14,15 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
 class DockerClientFactory
 {
     /**
-     * @param array $socketClientOptions
+     * @param array $options
      * @return DockerClient
      */
-    public static function create(array $socketClientOptions = []): DockerClient
+    public static function create(array $options = []): DockerClient
     {
         $optionsResolver = new OptionsResolver();
         static::configureOptions($optionsResolver);
 
-        $options = $optionsResolver->resolve($socketClientOptions);
+        $options = $optionsResolver->resolve($options);
 
         $socketClient = new SocketHttpClient([
             'remote_socket' => $options['remote_socket']
