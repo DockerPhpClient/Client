@@ -15,12 +15,9 @@ $client = DockerClientFactory::create();
 $factory = new ContextFactory(Tar::class);
 $context = $factory->createImageContext(__DIR__ . '/app/');
 var_dump($client->images()->exists('new-test-image'));
-echo $response->getStatusCode();
 $buildInfos = $client->images()->build($context, ['t' => 'new-test-image']);
 
-$response = $client->images()->inspect('new-test-image', Client::FETCH_RESPONSE);
-echo $response->getStatusCode();
-
+var_dump($client->images()->exists('new-test-image'));
 
 foreach ($buildInfos->getLogs() as $log) {
     echo $log;
