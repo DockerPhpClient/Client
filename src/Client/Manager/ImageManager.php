@@ -15,6 +15,7 @@ use Docker\OpenAPI\Exception\ImageInspectNotFoundException;
 use Docker\OpenAPI\Model\BuildInfo;
 use Docker\OpenAPI\Model\Image;
 use Docker\OpenAPI\Model\ImageDeleteResponseItem;
+use Psr\Http\Message\ResponseInterface;
 use splitbrain\PHPArchive\ArchiveIOException;
 
 class ImageManager
@@ -58,6 +59,16 @@ class ImageManager
     public function inspect(string $idOrName): Image
     {
         return $this->apiClient->imageInspect($idOrName, Client::FETCH_OBJECT);
+    }
+
+    /**
+     * @param string $idOrName
+     * @return bool
+     */
+    public function exists(string $idOrName): bool
+    {
+        $response = $this->apiClient->imageInspect($idOrName, Client::FETCH_RESPONSE);
+        return 200 === $response->getStatusCode();
     }
 
     /**

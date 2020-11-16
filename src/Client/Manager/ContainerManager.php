@@ -127,12 +127,23 @@ class ContainerManager
     /**
      * @param string $idOrName
      * @param array $queryParameters
-     * @return ContainersIdJsonGetResponse200
+     * @return ContainersIdJsonGetResponse200|ResponseInterface
      * @throws ContainerInspectNotFoundException
      * @throws ContainerInspectInternalServerErrorException
      */
-    public function inspect(string $idOrName, array $queryParameters = []): ContainersIdJsonGetResponse200
+    public function inspect(string $idOrName, array $queryParameters = [])
     {
         return $this->apiClient->containerInspect($idOrName, $queryParameters, Client::FETCH_OBJECT);
+    }
+
+    /**
+     * @param string $idOrName
+     * @param array $queryParameters
+     * @return bool
+     */
+    public function exists(string $idOrName, array $queryParameters = []): bool
+    {
+        $response = $this->apiClient->containerInspect($idOrName, $queryParameters, Client::FETCH_RESPONSE);
+        return 200 === $response;
     }
 }
