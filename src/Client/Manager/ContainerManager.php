@@ -1,49 +1,118 @@
 <?php
-
+declare(strict_types=1);
 
 namespace Docker\Client\Manager;
 
 
+use Docker\Client\Stream\DockerRawStream;
 use Docker\OpenAPI\Client;
+use Docker\OpenAPI\Exception\ContainerCreateBadRequestException;
+use Docker\OpenAPI\Exception\ContainerCreateConflictException;
+use Docker\OpenAPI\Exception\ContainerCreateInternalServerErrorException;
+use Docker\OpenAPI\Exception\ContainerCreateNotFoundException;
+use Docker\OpenAPI\Exception\ContainerDeleteBadRequestException;
+use Docker\OpenAPI\Exception\ContainerDeleteConflictException;
+use Docker\OpenAPI\Exception\ContainerDeleteInternalServerErrorException;
+use Docker\OpenAPI\Exception\ContainerDeleteNotFoundException;
+use Docker\OpenAPI\Exception\ContainerInspectInternalServerErrorException;
+use Docker\OpenAPI\Exception\ContainerInspectNotFoundException;
+use Docker\OpenAPI\Exception\ContainerStartInternalServerErrorException;
+use Docker\OpenAPI\Exception\ContainerStartNotFoundException;
+use Docker\OpenAPI\Exception\ContainerWaitInternalServerErrorException;
+use Docker\OpenAPI\Exception\ContainerWaitNotFoundException;
 use Docker\OpenAPI\Model\ContainersCreatePostBody;
+use Docker\OpenAPI\Model\ContainersCreatePostResponse201;
+use Docker\OpenAPI\Model\ContainersIdJsonGetResponse200;
+use Docker\OpenAPI\Model\ContainersIdWaitPostResponse200;
 use Docker\OpenAPI\Model\ContainerSummaryItem;
 use Psr\Http\Message\ResponseInterface;
+use Psr\Log\LoggerInterface;
+use Psr\Log\LogLevel;
 
 class ContainerManager
 {
     private Client $apiClient;
-    private string $fetchType;
 
-    public function __construct(Client $apiClient, string $fetchType = Client::FETCH_OBJECT)
+    public function __construct(Client $apiClient)
     {
         $this->apiClient = $apiClient;
-        $this->fetchType = $fetchType;
     }
 
-    public function create(ContainersCreatePostBody $container, array $queryParameters = [])
+    /**
+     * @param ContainersCreatePostBody $container
+     * @param array $queryParameters
+     * @return ContainersCreatePostResponse201
+     * @throws ContainerCreateBadRequestException
+     * @throws ContainerCreateNotFoundException
+     * @throws ContainerCreateConflictException
+     * @throws ContainerCreateInternalServerErrorException
+     */
+    public function create(ContainersCreatePostBody $container, array $queryParameters = []): ContainersCreatePostResponse201
     {
-        return $this->apiClient->containerCreate($container, $queryParameters, $this->fetchType);
+        return $this->apiClient->containerCreate($container, $queryParameters, Client::FETCH_OBJECT);
     }
 
-    public function start(string $idOrName, array $queryParameters = []): ?ResponseInterface
+    /**
+     * @param string $idOrName
+     * @param array $queryParameters
+     * @throws ContainerStartNotFoundException
+     * @throws ContainerStartInternalServerErrorException
+     */
+    public function start(string $idOrName, array $queryParameters = []): void
     {
-        return $this->apiClient->containerStart($idOrName, $queryParameters, $this->fetchType);
+        $this->apiClient->containerStart($idOrName, $queryParameters, Client::FETCH_OBJECT);
     }
 
-    public function delete(string $idOrName, array $queryParameters = []): ?ResponseInterface
+    /**
+     * @param string $idOrName
+     * @param array $queryParameters
+     * @throws ContainerDeleteBadRequestException
+     * @throws ContainerDeleteNotFoundException
+     * @throws ContainerDeleteConflictException
+     * @throws ContainerDeleteInternalServerErrorException
+     */
+    public function delete(string $idOrName, array $queryParameters = []): void
     {
-        return $this->apiClient->containerDelete($idOrName, $queryParameters, $this->fetchType);
+        $this->apiClient->containerDelete($idOrName, $queryParameters, Client::FETCH_OBJECT);
     }
 
-    public function wait(string $idOrName, array $queryParameters = [])
+    /**
+     * @param string $idOrName
+     * @param array $queryParameters
+     * @return ContainersIdWaitPostResponse200
+     * @throws ContainerWaitNotFoundException
+     * @throws ContainerWaitInternalServerErrorException
+     */
+    public function wait(string $idOrName, array $queryParameters = []): ContainersIdWaitPostResponse200
     {
-        return $this->apiClient->containerWait($idOrName, $queryParameters, $this->fetchType);
+        return $this->apiClient->containerWait($idOrName, $queryParameters, Client::FETCH_OBJECT);
     }
 
-    public function logs(string $idOrName): string
+    /**
+     * @param string $idOrName
+     * @return DockerRawStream
+     */
+    public function logs(string $idOrName): DockerRawStream
     {
         $response = $this->apiClient->containerAttach($idOrName, ['logs' => true, 'stdout' => true, 'stderr' => true], Client::FETCH_RESPONSE);
-        return ($response instanceof ResponseInterface) ? $response->getBody()->getContents() : "";
+        return new DockerRawStream($response->getBody());
+    }
+
+    /**
+     * @param string $idOrName
+     * @param LoggerInterface $logger
+     * @param string $logLevel
+     */
+    public function log(string $idOrName, LoggerInterface $logger, string $logLevel = LogLevel::INFO): void
+    {
+        $stream = $this->logs($idOrName);
+        $stream->onStdout(static function ($data) use ($logger, $logLevel) {
+            $logger->log($logLevel, $data);
+        });
+        $stream->onStderr(static function ($data) use ($logger) {
+            $logger->error($data);
+        });
+        $stream->wait();
     }
 
     /**
@@ -52,18 +121,18 @@ class ContainerManager
      */
     public function list(array $queryParameters = []): array
     {
-        return $this->apiClient->containerList($queryParameters, $this->fetchType);
+        return $this->apiClient->containerList($queryParameters, Client::FETCH_OBJECT);
     }
 
     /**
-     * TODO: WIP
-     * @param ContainerSummaryItem[] $containers
-     * @return string[]
+     * @param string $idOrName
+     * @param array $queryParameters
+     * @return ContainersIdJsonGetResponse200
+     * @throws ContainerInspectNotFoundException
+     * @throws ContainerInspectInternalServerErrorException
      */
-    public function toContainerListLog(array $containers): array
+    public function inspect(string $idOrName, array $queryParameters = []): ContainersIdJsonGetResponse200
     {
-        return array_map(static function (ContainerSummaryItem $container) {
-            return substr($container->getId(), 8) . " " . $container->getNames()[0] . " " . $container->getImage() . " (" . substr($container->getImageID(), 8) . ")\n";
-        }, $containers);
+        return $this->apiClient->containerInspect($idOrName, $queryParameters, Client::FETCH_OBJECT);
     }
 }

@@ -1,17 +1,18 @@
 <?php
-
+declare(strict_types=1);
 
 namespace Docker\Client\Endpoint;
 
 use Docker\OpenAPI\Endpoint\ImageBuild as BaseEndpoint;
 use Docker\OpenAPI\Model\BuildInfo;
+use Symfony\Component\Serializer\SerializerInterface;
 
 class ImageBuild extends BaseEndpoint
 {
     /**
      * {@inheritDoc}
      */
-    protected function transformResponseBody(string $body, int $status, \Symfony\Component\Serializer\SerializerInterface $serializer, ?string $contentType)
+    protected function transformResponseBody(string $body, int $status, SerializerInterface $serializer, ?string $contentType)
     {
         if (200 === $status) {
             $data = $this->logToJson($body);

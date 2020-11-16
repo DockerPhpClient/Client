@@ -10,11 +10,14 @@
 - delete
 - wait
 - logs
+- log
 - list
+- inspect
 
 ### Images
 - create
 - delete
+- inspect
 
 ## Examples
 See the examples folder for example code

@@ -15,9 +15,9 @@ $factory = new ContextFactory(Tar::class);
 $context = $factory->createImageContext(__DIR__ . '/app/');
 $buildInfos = $client->images()->build($context, ['t' => 'new-test-image']);
 
-// print build log and receive id
-echo implode("", $client->images()->toBuildLog($buildInfos));
-echo "\nImage ID: " . $client->images()->toBuildId($buildInfos) . "\n";
+foreach ($buildInfos->getLogs() as $log) {
+    echo $log;
+}
 
 // delete image
 $client->images()->delete('new-test-image');
