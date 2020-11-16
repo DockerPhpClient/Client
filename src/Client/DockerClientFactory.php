@@ -25,9 +25,9 @@ class DockerClientFactory
         $options = $optionsResolver->resolve($socketClientOptions);
 
         $socketClient = new SocketHttpClient([
-            'remote_socket' => $options['remoteSocket']
+            'remote_socket' => $options['remote_socket']
         ]);
-        $host = preg_match('/unix:\/\//', $options['remoteSocket']) ? 'http://localhost' : $options['remoteSocket'];
+        $host = preg_match('/unix:\/\//', $options['remote_socket']) ? 'http://localhost' : $options['remote_socket'];
 
         $httpClient = new PluginClient($socketClient, [
             #new ErrorPlugin(),
@@ -36,14 +36,14 @@ class DockerClientFactory
             new AddHostPlugin(new Uri($host)),
         ]);
 
-        unset($options['remoteSocket']);
+        unset($options['remote_socket']);
         return new DockerClient(ApiClient::create($httpClient), $options);
     }
 
     protected static function configureOptions(OptionsResolver $resolver): void
     {
         $resolver->setDefaults([
-            'remoteSocket' => 'unix:///var/run/docker.sock',
+            'remote_socket' => 'unix:///var/run/docker.sock',
             'registries' => []
         ]);
     }
