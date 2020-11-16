@@ -9,6 +9,7 @@ use Http\Client\Common\Plugin\DecoderPlugin;
 use Http\Client\Common\Plugin\ErrorPlugin;
 use Http\Client\Common\PluginClient;
 use Http\Client\Socket\Client as SocketHttpClient;
+use Symfony\Component\OptionsResolver\OptionsResolver;
 
 class DockerClientFactory
 {
@@ -18,14 +19,15 @@ class DockerClientFactory
      */
     public static function create(array $socketClientOptions = []): DockerClient
     {
-        $remoteSocket = array_key_exists('remote_socket', $socketClientOptions)
-            ? $socketClientOptions['remote_socket']
-            : 'unix:///var/run/docker.sock';
+        $optionsResolver = new OptionsResolver();
+        static::configureOptions($optionsResolver);
+
+        $options = $optionsResolver->resolve($socketClientOptions);
 
         $socketClient = new SocketHttpClient([
-            'remote_socket' => $remoteSocket
+            'remote_socket' => $options['remoteSocket']
         ]);
-        $host = preg_match('/unix:\/\//', $remoteSocket) ? 'http://localhost' : $remoteSocket;
+        $host = preg_match('/unix:\/\//', $options['remoteSocket']) ? 'http://localhost' : $options['remoteSocket'];
 
         $httpClient = new PluginClient($socketClient, [
             #new ErrorPlugin(),
@@ -34,6 +36,15 @@ class DockerClientFactory
             new AddHostPlugin(new Uri($host)),
         ]);
 
-        return new DockerClient(ApiClient::create($httpClient));
+        unset($options['remoteSocket']);
+        return new DockerClient(ApiClient::create($httpClient), $options);
+    }
+
+    protected static function configureOptions(OptionsResolver $resolver): void
+    {
+        $resolver->setDefaults([
+            'remoteSocket' => 'unix:///var/run/docker.sock',
+            'registries' => []
+        ]);
     }
 }

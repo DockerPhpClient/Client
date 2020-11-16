@@ -18,15 +18,8 @@ use Docker\OpenAPI\Model\ImageDeleteResponseItem;
 use Psr\Http\Message\ResponseInterface;
 use splitbrain\PHPArchive\ArchiveIOException;
 
-class ImageManager
+class ImageManager extends AbstractManager
 {
-    private Client $apiClient;
-
-    public function __construct(Client $apiClient)
-    {
-        $this->apiClient = $apiClient;
-    }
-
     /**
      * @param ImageContext $imageContext
      * @param array $queryParameters
@@ -39,6 +32,8 @@ class ImageManager
      */
     public function build(ImageContext $imageContext, array $queryParameters = [], array $headerParameters = []): ImageBuildLog
     {
+        $headerParameters['X-Registry-Config'] = $this->getEncodedRegistryConfig($headerParameters);
+
         /** @var BuildInfo[] $buildInfos */
         $buildInfos = $this->apiClient->executeEndpoint(new ImageBuild($imageContext->toStream(), $queryParameters, $headerParameters), Client::FETCH_OBJECT);
 
@@ -79,5 +74,18 @@ class ImageManager
     public function delete(string $idOrName, array $queryParameters = []): array
     {
         return $this->apiClient->imageDelete($idOrName, $queryParameters, Client::FETCH_OBJECT);
+    }
+
+    /**
+     * @param array $headerParameters
+     * @return string
+     */
+    private function getEncodedRegistryConfig(array $headerParameters): string
+    {
+        $registryConfig = array_key_exists('X-Registry-Config', $headerParameters)
+            ? $headerParameters['X-Registry-Config']
+            : $this->options['registries'];
+
+        return base64_encode(json_encode($registryConfig));
     }
 }

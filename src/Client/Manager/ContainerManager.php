@@ -29,15 +29,8 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\LogLevel;
 
-class ContainerManager
+class ContainerManager extends AbstractManager
 {
-    private Client $apiClient;
-
-    public function __construct(Client $apiClient)
-    {
-        $this->apiClient = $apiClient;
-    }
-
     /**
      * @param ContainersCreatePostBody $container
      * @param array $queryParameters
